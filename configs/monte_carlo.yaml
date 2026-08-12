@@ -1,0 +1,19 @@
+replications: 200
+crossfit_folds: 5
+master_seed: 20260811
+primary_scenarios: [A, B, C, D]
+primary_methods:
+  - difference_in_means
+  - ols_adjusted
+  - lasso_plugin
+  - parametric_ipw
+  - parametric_aipw
+  - dml_plr_lasso
+  - dml_plr_lasso_rich
+sensitivity:
+  sample_size:
+    scenario: C
+    values: [500, 1000, 2000]
+  crossfit_folds:
+    scenario: C
+    values: [2, 5]

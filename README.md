@@ -34,7 +34,7 @@ Under weak overlap (Scenario D), rich-dictionary DML remains much more accurate 
 
 See [`docs/results.md`](docs/results.md) for the full interpretation.
 
-![Core estimator bias](figures/bias_core_methods.png)
+![Core estimator bias](figures/bias_core_methods.svg)
 
 ## Why this project
 
@@ -218,15 +218,15 @@ The share of **true** propensity scores outside [0.05,0.95] rises from roughly 0
 
 **Lesson:** better treatment classification can indicate worse causal overlap.
 
-![RMSE on log scale](figures/rmse_all_methods_log.png)
+![RMSE on log scale](figures/rmse_all_methods_log.svg)
 
-![True overlap stress](figures/true_overlap_extremes.png)
+![True overlap stress](figures/true_overlap_extremes.svg)
 
 ## Reproducibility
 
 The final high-dimensional simulations were executed in five independent 40-replication blocks so long-lived native numerical state could not contaminate the run. The batch seeds are recorded in the methodology and run manifest, and the raw outputs are merged deterministically.
 
-The project includes:
+The GitHub snapshot includes:
 
 - deterministic DGP and seeds;
 - configuration files;
@@ -234,7 +234,7 @@ The project includes:
 - unit/smoke tests;
 - nuisance-only hyperparameter calibration;
 - overlap calibration;
-- raw replication-level results;
+- frozen Monte Carlo summaries plus SHA-256 reference hashes for the raw replication-level outputs;
 - Monte Carlo summaries;
 - automated figures;
 - execution-validated notebooks;
@@ -242,6 +242,8 @@ The project includes:
 - an optional DoubleML validation hook.
 
 Current automated test status: **9 passing**.
+
+> **Repository-size note:** the GitHub portfolio snapshot intentionally omits the multi-megabyte replication-level `*_raw.csv` files and the generated example dataset. They are deterministic derivatives of the committed DGP/configuration and recorded seeds. Their frozen SHA-256 hashes remain in `results/run_manifest.json`, and the committed scripts reproduce them exactly.
 
 ## Repository structure
 
@@ -278,7 +280,8 @@ double-ml-health-data-benchmark/
 ├── results/
 │   ├── run_manifest.json
 │   ├── key_results.csv
-│   └── combined_*.csv
+│   ├── combined_summary.csv
+│   └── scenario_*_summary.csv
 └── figures/
 ```
 

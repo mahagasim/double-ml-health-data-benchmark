@@ -1,0 +1,3 @@
+-r requirements.txt
+doubleml>=0.9
+xgboost>=3.0,<4

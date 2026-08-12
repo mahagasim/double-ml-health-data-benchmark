@@ -1,0 +1,9 @@
+name: C
+n: 1000
+p: 400
+rho: 0.30
+tau: 1.0
+outcome_noise_sd: 1.0
+nonlinear: true
+overlap_scale: 1.0
+description: High-dimensional nonlinear/interacting confounding with good overlap.

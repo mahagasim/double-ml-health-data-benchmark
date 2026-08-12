@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dml-health-benchmark"
+version = "0.1.0"
+description = "Monte Carlo benchmark of conventional causal estimators and Double Machine Learning under high-dimensional health-data confounding."
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+  "scipy>=1.11",
+  "scikit-learn>=1.4",
+  "statsmodels>=0.14",
+  "matplotlib>=3.8",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+validation = ["doubleml>=0.9", "xgboost>=3.0,<4"]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[project.scripts]
+dml-health-run = "dml_health_benchmark.cli:main"

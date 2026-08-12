@@ -1,0 +1,9 @@
+name: A
+n: 1000
+p: 10
+rho: 0.30
+tau: 1.0
+outcome_noise_sd: 1.0
+nonlinear: false
+overlap_scale: 1.0
+description: Low-dimensional linear confounding with good overlap.

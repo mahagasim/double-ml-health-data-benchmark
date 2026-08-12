@@ -1,0 +1,8 @@
+scenario,method,propensity_brier,propensity_log_loss,propensity_auc,propensity_calibration_error,propensity_rmse_truth,l_rmse_truth,mu0_rmse_truth,mu1_rmse_truth,estimated_extreme_propensity_share_005
+C,difference_in_means,,,,,,,,,
+C,ols_adjusted,,,,,,,,,
+C,lasso_plugin,,,,,,,1.048157002834797,1.0428117019122254,
+C,parametric_ipw,,,,,,,,,
+C,parametric_aipw,,,,,,,,,
+C,dml_plr_lasso,0.23875264229207185,0.6701950356675261,0.6196559535600147,0.03938527956190489,0.16885482149654266,1.1707716329884221,,,0.0
+C,dml_plr_lasso_rich,0.23381917004998382,0.6598242255671362,0.6460767524846571,0.04597692798569418,0.15399250518462732,0.45847985707737005,,,0.000655

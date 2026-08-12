@@ -1,0 +1,33 @@
+{
+  "project": "double-ml-health-data-benchmark",
+  "snapshot_type": "GitHub portfolio snapshot",
+  "primary_experiment": {
+    "true_effect": 1.0,
+    "scenarios": ["A", "B", "C", "D"],
+    "replications_per_scenario": 200,
+    "total_simulated_datasets": 800,
+    "primary_estimators_per_dataset": 7,
+    "crossfit_folds": 5,
+    "raw_p": {"A": 10, "B": 400, "C": 400, "D": 400},
+    "rich_dictionary_p_star_high_dimensional": 1999,
+    "overlap_scale_D": 2.25,
+    "lasso_alpha": 0.05,
+    "l1_logit_C": 0.05,
+    "penalty_calibration_seeds": [9101, 9102, 9103],
+    "batch_seeds": [20260811, 20360814, 20460817, 20560820, 20660823]
+  },
+  "scientific_run_note": "Primary results were frozen before GitHub packaging. The GitHub presentation layer uses text/SVG assets and compact reviewer notebooks; scientific estimands, summaries, seeds, DGPs and estimator definitions are unchanged.",
+  "github_snapshot_omitted_reproducible_files": {
+    "results/combined_raw.csv": "a53c5236df6b10883d0a8030cd8ea8ca081b3f50548192701df53e8b16ce39bb",
+    "results/scenario_A_raw.csv": "1ec27cfbfd64036ec9185cd28768b2f1337ae6e67ee2b9bcb9affabab9755fcd",
+    "results/scenario_B_raw.csv": "9b3035ecef1dde28e7c77a990f9850dffa1ec52af6a737d60afd16c9b1c7acfe",
+    "results/scenario_C_raw.csv": "2ff51a4c6e56083be1bf1043780c9c165d73bccfdfed1c65a6a007fbd14bac6e",
+    "results/scenario_D_raw.csv": "cb49927900b64aceb3a8fd5197f3ccc5580dca991bc4bdfeed46282ee4e291eb",
+    "data/examples/scenario_A_seed20260811.csv": "4e0d1c23d0306fe8c0bf37a31b33a00e2a67da96c9a897681b14ea47126cc2b3"
+  },
+  "validation": {
+    "automated_tests": 9,
+    "test_status_at_freeze": "passing",
+    "doubleml_external_validation": "hook included; package agreement not claimed in primary execution environment"
+  }
+}

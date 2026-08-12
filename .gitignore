@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+results/raw/
+results/intermediate/
+notebooks/.ipynb_checkpoints/
+
+# Generated example data
+/data/examples/*.csv
+!/data/examples/.gitkeep
