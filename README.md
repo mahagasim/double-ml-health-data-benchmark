@@ -1,0 +1,342 @@
+# When Does Double Machine Learning Improve Causal Estimation?
+
+**A Monte Carlo benchmark of dimensionality, nonlinear nuisance structure, regularization, and overlap in simulated health data**
+
+> **Status:** primary experiment complete. The repository contains the frozen 800-dataset Monte Carlo results (200 replications × 4 scenarios), reviewer-facing notebooks, figures, diagnostics, and reproducibility metadata. No real patient data are used.
+
+## Research question
+
+**When does Double Machine Learning improve causal estimation, and when does it fail to do so?**
+
+The project asks how conventional causal estimators and DML behave as observed confounding becomes high-dimensional, nonlinear, and difficult to represent, and as treatment overlap deteriorates.
+
+A second question is deliberately predictive-versus-causal:
+
+> Does better nuisance prediction necessarily imply better causal-effect estimation?
+
+## Main finding
+
+The simulation does **not** show that DML automatically beats classical estimators.
+
+It shows something more specific:
+
+> **DML works well when the nuisance representation is adequate; orthogonalization does not compensate for a badly misspecified nuisance learner, and better treatment prediction does not repair weak overlap.**
+
+The strongest contrast occurs in the nonlinear Scenario C. The true effect is 1.0:
+
+| Estimator | Bias | RMSE | 95% coverage |
+|---|---:|---:|---:|
+| OLS adjustment | 0.498 | 0.511 | 0.040 |
+| DML — raw LASSO | 0.492 | 0.501 | 0.000 |
+| **DML — rich-dictionary LASSO** | **0.018** | **0.078** | **0.945** |
+
+Under weak overlap (Scenario D), rich-dictionary DML remains much more accurate than the alternatives, but coverage falls to 90.0% and RMSE rises to 0.099. DML therefore does not “solve” positivity.
+
+See [`docs/results.md`](docs/results.md) for the full interpretation.
+
+![Core estimator bias](figures/bias_core_methods.png)
+
+## Why this project
+
+Machine-learning algorithms optimize prediction. A causal estimand is a different statistical object. Naively inserting regularized or flexible nuisance predictions into a causal procedure can transmit model-selection and overfitting bias into a low-dimensional target.
+
+Double/Debiased Machine Learning addresses this problem through:
+
+1. **Neyman-orthogonal scores**, which reduce first-order sensitivity to nuisance-estimation error; and
+2. **cross-fitting**, which evaluates the score using out-of-fold nuisance predictions.
+
+This repository therefore implements the estimating equation directly rather than treating DML as a black-box package call.
+
+## Primary causal model
+
+The DGP satisfies a partially linear model
+
+\[
+Y=D\theta_0+g_0(X)+\varepsilon,
+\qquad E[\varepsilon\mid D,X]=0.
+\]
+
+Treatment is binary, the outcome is continuous, and
+
+\[
+\theta_0=1.
+\]
+
+Because treatment effects are constant,
+
+\[
+ATE=E[Y(1)-Y(0)]=1.
+\]
+
+The project also retains a manual binary-treatment IRM/AIPW DML implementation as a secondary extension.
+
+## Four simulation scenarios
+
+| Scenario | N | Raw p | Structure | Overlap | Purpose |
+|---|---:|---:|---|---|---|
+| **A** | 1,000 | 10 | Linear, low-dimensional | Good | Classical benchmark |
+| **B** | 1,000 | 400 | Sparse linear, many controls | Good | Stress regularization/dimensionality |
+| **C** | 1,000 | 400 | Nonlinear + interactions | Good | Stress nuisance representation |
+| **D** | 1,000 | 400 | Same nonlinear structure as C | Weak | Stress positivity/overlap |
+
+Covariates follow a correlated Gaussian AR(1)-type design with \(\rho=0.30\).
+
+In B-D:
+
+- X1-X10 are true confounders;
+- X11-X15 predict treatment only;
+- X16-X20 predict outcome only;
+- X21-X400 are noise.
+
+This separation is important because predictive relevance is not identical to confounding relevance.
+
+## A genuinely high-dimensional nuisance dictionary
+
+The primary flexible DML learner is not a model-zoo addition. It creates a fixed nonlinear basis for **every** covariate:
+
+- \(X_j\);
+- \(X_j^2-1\);
+- \(\sin(X_j)\);
+- \(I(X_j>0)-1/2\);
+- adjacent interactions \(X_jX_{j+1}-\rho\).
+
+For \(p=400\), this produces
+
+\[
+p^*=5p-1=1999>N=1000.
+\]
+
+LASSO therefore has to perform regularized nuisance learning in a true \(p^*>N\) design. The dictionary is deterministic and applied to all covariates; it does not receive an oracle list of active variables.
+
+## Estimator ladder
+
+The primary benchmark contains seven estimators:
+
+1. **Difference in means** — unadjusted confounding benchmark.
+2. **OLS adjustment** — classical regression benchmark.
+3. **Naive LASSO g-formula plug-in** — regularized outcome prediction without an orthogonal score.
+4. **Parametric IPW** — unpenalized logistic propensity weighting.
+5. **Parametric AIPW** — doubly robust parametric benchmark.
+6. **DML-PLR + raw LASSO** — sparse linear nuisance learning.
+7. **DML-PLR + rich-dictionary LASSO** — nonlinear high-dimensional nuisance learning.
+
+Random Forest and XGBoost implementations remain available as optional sensitivities; they are not used in the frozen primary results.
+
+## Manual DML implementation
+
+Define
+
+\[
+\ell_0(X)=E[Y\mid X],
+\qquad
+m_0(X)=E[D\mid X].
+\]
+
+The partialling-out score is
+
+\[
+\psi(W;\theta,\eta)
+=
+\{Y-\ell(X)-\theta[D-m(X)]\}\{D-m(X)\}.
+\]
+
+The code manually:
+
+1. creates five outer folds;
+2. fits nuisance models on the complement of each fold;
+3. generates held-out \(\hat\ell(X)\) and \(\hat m(X)\);
+4. residualizes outcome and treatment;
+5. estimates \(\theta\) from the orthogonal score; and
+6. computes an influence-function standard error.
+
+No DML package is required for the primary estimator.
+
+## Frozen L1 penalties
+
+L1 hyperparameters were calibrated **before the scientific run** using separate seeds 9101-9103 and nuisance-prediction metrics only. Treatment-effect error was not used to select them.
+
+Frozen values:
+
+- outcome LASSO \(\alpha=0.05\);
+- L1-logistic treatment nuisance \(C=0.05\).
+
+The full calibration grid is committed in `results/l1_penalty_calibration.csv`.
+
+## Monte Carlo design
+
+The primary experiment contains
+
+\[
+4\times200=800
+\]
+
+simulated datasets.
+
+For each estimator the repository records:
+
+- bias and Monte Carlo SE of bias;
+- RMSE;
+- empirical SD;
+- mean estimated SE;
+- empirical 95% coverage and its Monte Carlo SE;
+- average interval width;
+- median and 95th-percentile absolute error;
+- estimator failure rate;
+- runtime.
+
+Coverage is interpreted jointly with interval width and failures. This matters because unstable IPW/AIPW procedures can obtain superficially high coverage only through enormous intervals.
+
+## Primary results by scenario
+
+### A — classical model is correctly specified
+
+OLS is essentially unbiased (bias -0.005), with RMSE 0.067 and 96.5% coverage. DML is stable but not superior; fixed regularization produces small finite-sample bias and some undercoverage.
+
+**Lesson:** complexity is unnecessary when the simple model is right.
+
+### B — sparse many-control setting
+
+OLS remains excellent because the structural outcome model is linear and \(N>p\). Raw DML-LASSO has similar RMSE but more bias and lower coverage.
+
+Unpenalized parametric IPW/AIPW become heavy-tailed and fail numerically in 6.5% of replications.
+
+**Lesson:** “many controls” alone does not imply DML must dominate correctly specified regression, but unregularized propensity modeling can become fragile.
+
+### C — nonlinear confounding
+
+Raw-linear OLS and raw-linear DML both retain approximately +0.50 bias. Rich-dictionary DML reduces bias to +0.018 and restores 94.5% coverage.
+
+Outcome-nuisance RMSE falls from 1.171 for raw DML-LASSO to 0.458 for rich-dictionary DML.
+
+**Lesson:** orthogonalization requires adequate nuisance learning; DML is not a cure for arbitrary nuisance misspecification.
+
+### D — weak overlap
+
+The rich learner's mean propensity AUC rises from 0.646 in C to 0.825 in D, yet causal RMSE worsens from 0.078 to 0.099 and coverage falls from 94.5% to 90.0%.
+
+The share of **true** propensity scores outside [0.05,0.95] rises from roughly 0.6% to 15.9%.
+
+**Lesson:** better treatment classification can indicate worse causal overlap.
+
+![RMSE on log scale](figures/rmse_all_methods_log.png)
+
+![True overlap stress](figures/true_overlap_extremes.png)
+
+## Reproducibility
+
+The final high-dimensional simulations were executed in five independent 40-replication blocks so long-lived native numerical state could not contaminate the run. The batch seeds are recorded in the methodology and run manifest, and the raw outputs are merged deterministically.
+
+The project includes:
+
+- deterministic DGP and seeds;
+- configuration files;
+- manual estimator source code;
+- unit/smoke tests;
+- nuisance-only hyperparameter calibration;
+- overlap calibration;
+- raw replication-level results;
+- Monte Carlo summaries;
+- automated figures;
+- execution-validated notebooks;
+- a staged CI workflow;
+- an optional DoubleML validation hook.
+
+Current automated test status: **9 passing**.
+
+## Repository structure
+
+```text
+double-ml-health-data-benchmark/
+├── README.md
+├── pyproject.toml
+├── references.bib
+├── configs/
+├── data/
+├── docs/
+│   ├── methodology.md
+│   ├── results.md
+│   ├── literature_matrix.md
+│   └── design_decisions.md
+├── src/dml_health_benchmark/
+│   ├── dgp.py
+│   ├── features.py
+│   ├── learners.py
+│   ├── estimators.py
+│   ├── diagnostics.py
+│   ├── monte_carlo.py
+│   ├── plotting.py
+│   └── validation.py
+├── scripts/
+│   ├── calibrate_lasso_penalties.py
+│   ├── calibrate_overlap.py
+│   ├── run_experiment.py
+│   ├── merge_batch_outputs.py
+│   ├── export_example_data.py
+│   └── make_figures.py
+├── tests/
+├── notebooks/
+├── results/
+│   ├── run_manifest.json
+│   ├── key_results.csv
+│   └── combined_*.csv
+└── figures/
+```
+
+## Run the project
+
+Install the primary environment:
+
+```bash
+pip install -e .
+```
+
+Run a short reproducibility check:
+
+```bash
+dml-health-run --scenario C --replications 10 --folds 5 --jobs 1
+```
+
+Run one full scenario in an environment that supports a long process:
+
+```bash
+dml-health-run --scenario C --replications 200 --folds 5 --jobs 5
+```
+
+For isolated blocks, run separate 40-replication jobs and merge them with:
+
+```bash
+python scripts/merge_batch_outputs.py \
+  --scenario C \
+  --batch-root results/batches_C \
+  --output-dir results
+```
+
+Generate figures from the saved raw outputs:
+
+```bash
+python scripts/make_figures.py \
+  results/scenario_A_raw.csv \
+  results/scenario_B_raw.csv \
+  results/scenario_C_raw.csv \
+  results/scenario_D_raw.csv
+```
+
+## Reviewer notebooks
+
+1. `01_theory_and_dgp.ipynb` — causal target, assumptions, DGP and overlap.
+2. `02_manual_dml_walkthrough.ipynb` — cross-fitting and orthogonal-score derivation from scratch.
+3. `03_monte_carlo_analysis.ipynb` — reads the frozen results and reproduces the substantive diagnostics.
+
+## Boundaries and limitations
+
+- This is a simulation study, not a clinical-effect analysis.
+- Treatment effects are constant by construction.
+- The rich basis intentionally contains transformation families capable of representing the nonlinear DGP; it is a controlled learner-adequacy experiment.
+- Fixed nuisance penalties are one finite-sample design choice.
+- The unpenalized parametric propensity benchmark is deliberately stressed in the 400-control settings.
+- Sample-size/fold-count and tree-learner sensitivities remain extensions.
+- `DoubleML` package agreement is not yet claimed because the optional package was unavailable in the execution environment.
+
+## Methodological foundation
+
+The project is anchored to the high-dimensional treatment-effect, doubly robust, DML/orthogonality, cross-fitting, and overlap literature. See [`docs/literature_matrix.md`](docs/literature_matrix.md) and [`references.bib`](references.bib).
