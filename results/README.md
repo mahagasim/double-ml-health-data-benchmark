@@ -30,6 +30,7 @@ The final runs are reported as five independent 40-replication blocks with deter
 - `l1_penalty_calibration.csv`: separate-seed nuisance-only L1 calibration grid.
 - `l1_penalty_calibration_summary.csv`: averaged penalty-calibration diagnostics.
 - `run_manifest.json`: frozen scientific configuration, seeds, omitted-artifact hashes, and validation-status metadata. It does **not** contain a complete software-version lock.
+- `doubleml_validation.md`: separate fixed-draw implementation validation of the manual **raw-LASSO PLR** estimator against DoubleMLPLR. This is not part of the frozen Monte Carlo results and does not validate the rich dictionary or omitted raw archive.
 
 The narrative interpretation is in [`docs/results.md`](../docs/results.md).
 
@@ -51,5 +52,15 @@ This checks that:
 - if an omitted archive artifact is present locally, its SHA-256 hash matches the manifest.
 
 Because the replication-level CSV files are not committed, the lightweight GitHub snapshot **cannot independently hash-verify those omitted files** unless they are supplied or regenerated. The committed summaries and status counts can nevertheless be checked for internal consistency without rerunning the Monte Carlo.
+
+## Independent implementation check
+
+Run:
+
+```bash
+python scripts/validate_doubleml.py
+```
+
+in the validation environment. The CI job pins DoubleML 0.11.4 and compares the manual raw-LASSO PLR estimator with `DoubleMLPLR` on fixed Scenario A and C draws using the same five-fold split. Exact recorded values and interpretation boundaries are in `doubleml_validation.md`.
 
 Raw synthetic datasets are not committed. The DGP and deterministic seeds are retained so they can be regenerated.
