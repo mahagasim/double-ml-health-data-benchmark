@@ -36,7 +36,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-ci-pinned.txt
-          pip install "doubleml>=0.9"
+          pip install "doubleml==0.11.4"
           pip install -e . --no-deps
       - name: Compare manual PLR with DoubleMLPLR
         run: python scripts/validate_doubleml.py
