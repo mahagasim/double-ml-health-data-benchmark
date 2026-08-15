@@ -2,7 +2,7 @@
 
 **A Monte Carlo benchmark of dimensionality, nonlinear nuisance structure, regularization, and overlap in simulated health data**
 
-> **Status:** primary experiment complete. The repository contains the frozen 800-dataset Monte Carlo results (200 replications × 4 scenarios), reviewer-facing notebooks, figures, diagnostics, and reproducibility metadata. No real patient data are used.
+> **Status:** primary experiment complete. This lightweight GitHub snapshot contains frozen summaries from a reported 800-dataset Monte Carlo run (200 replications × 4 scenarios), reviewer-facing notebooks, figures, diagnostics, deterministic seeds, and SHA-256 reference hashes for omitted replication-level outputs. No real patient data are used.
 
 ## Research question
 
@@ -12,7 +12,7 @@ The project asks how conventional causal estimators and DML behave as observed c
 
 A second question is deliberately predictive-versus-causal:
 
-> Does better nuisance prediction necessarily imply better causal-effect estimation?
+> Does better treatment discrimination necessarily imply better causal-effect estimation?
 
 ## Main finding
 
@@ -20,7 +20,7 @@ The simulation does **not** show that DML automatically beats classical estimato
 
 It shows something more specific:
 
-> **DML works well when the nuisance representation is adequate; orthogonalization does not compensate for a badly misspecified nuisance learner, and better treatment prediction does not repair weak overlap.**
+> **In this benchmark, DML performs well when the nuisance representation is adequate; orthogonalization does not compensate for severe nuisance misspecification, and it does not solve weak overlap.**
 
 The strongest contrast occurs in the nonlinear Scenario C. The true effect is 1.0:
 
@@ -30,7 +30,7 @@ The strongest contrast occurs in the nonlinear Scenario C. The true effect is 1.
 | DML — raw LASSO | 0.492 | 0.501 | 0.000 |
 | **DML — rich-dictionary LASSO** | **0.018** | **0.078** | **0.945** |
 
-Under weak overlap (Scenario D), rich-dictionary DML remains much more accurate than the alternatives, but coverage falls to 90.0% and RMSE rises to 0.099. DML therefore does not “solve” positivity.
+Under weak overlap (Scenario D), rich-dictionary DML remains much more accurate than the alternatives, but coverage falls to 90.0% and RMSE rises to 0.099. DML therefore does not solve weak overlap.
 
 See [`docs/results.md`](docs/results.md) for the full interpretation.
 
@@ -77,18 +77,18 @@ The project also retains a manual binary-treatment IRM/AIPW DML implementation a
 | **A** | 1,000 | 10 | Linear, low-dimensional | Good | Classical benchmark |
 | **B** | 1,000 | 400 | Sparse linear, many controls | Good | Stress regularization/dimensionality |
 | **C** | 1,000 | 400 | Nonlinear + interactions | Good | Stress nuisance representation |
-| **D** | 1,000 | 400 | Same nonlinear structure as C | Weak | Stress positivity/overlap |
+| **D** | 1,000 | 400 | Same nonlinear structure as C | Weak | Stress overlap |
 
 Covariates follow a correlated Gaussian AR(1)-type design with \(\rho=0.30\).
 
 In B-D:
 
-- X1-X10 are true confounders;
-- X11-X15 predict treatment only;
-- X16-X20 predict outcome only;
-- X21-X400 are noise.
+- X1-X10 enter both the treatment and outcome functions directly;
+- X11-X15 enter the treatment index directly but not the outcome mean;
+- X16-X20 enter the outcome mean directly but not the treatment index;
+- X21-X400 have zero direct structural coefficients in both equations.
 
-This separation is important because predictive relevance is not identical to confounding relevance.
+Because covariates are correlated, variables with zero direct coefficients can still be marginally predictive proxies. The labels above therefore refer to structural entry, not marginal predictive irrelevance.
 
 ## A genuinely high-dimensional nuisance dictionary
 
@@ -106,7 +106,7 @@ For \(p=400\), this produces
 p^*=5p-1=1999>N=1000.
 \]
 
-LASSO therefore has to perform regularized nuisance learning in a true \(p^*>N\) design. The dictionary is deterministic and applied to all covariates; it does not receive an oracle list of active variables.
+LASSO therefore performs regularized nuisance learning in a true \(p^*>N\) design. The dictionary does **not** receive an oracle list of active variables: the same transformations are applied to all covariates. However, the transformation families were deliberately chosen to span the nonlinearities used in the simulation DGP, so Scenario C is a controlled representation-adequacy experiment rather than an unrestricted black-box benchmark.
 
 ## Estimator ladder
 
@@ -153,18 +153,18 @@ No DML package is required for the primary estimator.
 
 ## Frozen L1 penalties
 
-L1 hyperparameters were calibrated **before the scientific run** using separate seeds 9101-9103 and nuisance-prediction metrics only. Treatment-effect error was not used to select them.
+L1 hyperparameters were frozen **before the scientific run** using separate seeds 9101-9103 and nuisance-prediction diagnostics only. Treatment-effect error was not used for selection.
 
 Frozen values:
 
 - outcome LASSO \(\alpha=0.05\);
 - L1-logistic treatment nuisance \(C=0.05\).
 
-The full calibration grid is committed in `results/l1_penalty_calibration.csv`.
+The pilot calibration used the raw-feature nuisance specification and simulation truth to assess nuisance error; it was not a separate optimization of the 1,999-feature rich dictionary. The values should therefore be read as fixed pilot-calibrated penalties, not as oracle-optimal hyperparameters for every learner specification. The full grid is committed in `results/l1_penalty_calibration.csv`.
 
 ## Monte Carlo design
 
-The primary experiment contains
+The reported primary experiment contains
 
 \[
 4\times200=800
@@ -212,11 +212,11 @@ Outcome-nuisance RMSE falls from 1.171 for raw DML-LASSO to 0.458 for rich-dicti
 
 ### D — weak overlap
 
-The rich learner's mean propensity AUC rises from 0.646 in C to 0.825 in D, yet causal RMSE worsens from 0.078 to 0.099 and coverage falls from 94.5% to 90.0%.
+The rich learner's mean propensity AUC rises from 0.646 in C to 0.825 in D, yet propensity RMSE-to-truth and calibration error do not improve. At the same time causal RMSE worsens from 0.078 to 0.099 and coverage falls from 94.5% to 90.0%.
 
 The share of **true** propensity scores outside [0.05,0.95] rises from roughly 0.6% to 15.9%.
 
-**Lesson:** better treatment classification can indicate worse causal overlap.
+**Lesson:** better treatment discrimination can indicate worse causal overlap; predictive discrimination is not the same object as causal identification or stable effect estimation.
 
 ![RMSE on log scale](figures/rmse_all_methods_log.svg)
 
@@ -224,26 +224,27 @@ The share of **true** propensity scores outside [0.05,0.95] rises from roughly 0
 
 ## Reproducibility
 
-The final high-dimensional simulations were executed in five independent 40-replication blocks so long-lived native numerical state could not contaminate the run. The batch seeds are recorded in the methodology and run manifest, and the raw outputs are merged deterministically.
+The final high-dimensional simulations were reported as five independent 40-replication blocks so long-lived native numerical state could not contaminate the run. The batch seeds are recorded in the methodology and run manifest, and the merge procedure is deterministic.
 
 The GitHub snapshot includes:
 
 - deterministic DGP and seeds;
-- configuration files;
+- configuration files documenting the frozen specification;
 - manual estimator source code;
 - unit/smoke tests;
 - nuisance-only hyperparameter calibration;
 - overlap calibration;
-- frozen Monte Carlo summaries plus SHA-256 reference hashes for the raw replication-level outputs;
-- Monte Carlo summaries;
+- frozen Monte Carlo summaries plus SHA-256 reference hashes for omitted replication-level outputs;
 - automated figures;
-- execution-validated notebooks;
-- a staged CI workflow;
+- reviewer-facing notebooks;
+- CI checks;
 - an optional DoubleML validation hook.
 
-Current automated test status: **9 passing**.
+Current committed test suite at the frozen snapshot: **9 tests**. CI on this revision also checks internal consistency of the committed frozen-result artifacts.
 
-> **Repository-size note:** the GitHub portfolio snapshot intentionally omits the multi-megabyte replication-level `*_raw.csv` files and the generated example dataset. They are deterministic derivatives of the committed DGP/configuration and recorded seeds. Their frozen SHA-256 hashes remain in `results/run_manifest.json`, and the committed scripts reproduce them exactly.
+> **Repository-size note:** the GitHub portfolio snapshot intentionally omits the multi-megabyte replication-level `*_raw.csv` files and the generated example dataset. The manifest records deterministic seeds and SHA-256 reference hashes for those omitted artifacts. Because the raw files are not committed, this snapshot can verify the internal consistency of the committed summaries and status counts, but it cannot independently hash-verify the omitted raw files unless they are supplied or regenerated.
+
+The YAML files under `configs/` document the frozen scenario specification. The executable scenario definitions currently live in the Python source; the YAML files should not be interpreted as an independently parsed source of truth.
 
 ## Repository structure
 
@@ -273,6 +274,7 @@ double-ml-health-data-benchmark/
 │   ├── calibrate_overlap.py
 │   ├── run_experiment.py
 │   ├── merge_batch_outputs.py
+│   ├── verify_frozen_results.py
 │   ├── export_example_data.py
 │   └── make_figures.py
 ├── tests/
@@ -314,7 +316,13 @@ python scripts/merge_batch_outputs.py \
   --output-dir results
 ```
 
-Generate figures from the saved raw outputs:
+Check the internal consistency of the committed frozen summaries/status/manifest without rerunning the Monte Carlo:
+
+```bash
+python scripts/verify_frozen_results.py
+```
+
+Generate figures from saved raw outputs when those outputs are available:
 
 ```bash
 python scripts/make_figures.py \
@@ -328,17 +336,20 @@ python scripts/make_figures.py \
 
 1. `01_theory_and_dgp.ipynb` — causal target, assumptions, DGP and overlap.
 2. `02_manual_dml_walkthrough.ipynb` — cross-fitting and orthogonal-score derivation from scratch.
-3. `03_monte_carlo_analysis.ipynb` — reads the frozen results and reproduces the substantive diagnostics.
+3. `03_monte_carlo_analysis.ipynb` — reads the frozen committed summaries and reproduces the substantive diagnostics.
+
+The notebooks are intentionally lightweight reviewer aids. Saved execution outputs are not used as evidence for the primary numerical claims.
 
 ## Boundaries and limitations
 
 - This is a simulation study, not a clinical-effect analysis.
-- Treatment effects are constant by construction.
+- Treatment effects are constant by construction; under heterogeneous effects, the PLR coefficient need not equal the population ATE.
 - The rich basis intentionally contains transformation families capable of representing the nonlinear DGP; it is a controlled learner-adequacy experiment.
-- Fixed nuisance penalties are one finite-sample design choice.
-- The unpenalized parametric propensity benchmark is deliberately stressed in the 400-control settings.
+- Fixed nuisance penalties are one finite-sample design choice and were pilot-calibrated on raw features rather than separately optimized for the rich dictionary.
+- The unpenalized parametric propensity benchmark is deliberately stressed in the 400-control settings; its plug-in SE does not constitute a full first-step-adjusted M-estimation sandwich.
 - Sample-size/fold-count and tree-learner sensitivities remain extensions.
-- `DoubleML` package agreement is not yet claimed because the optional package was unavailable in the execution environment.
+- `DoubleML` package agreement is not part of the frozen scientific run claim. An optional independent validation hook is retained separately.
+- With 200 replications, Monte Carlo uncertainty is non-negligible; small differences between close-performing methods should not be overinterpreted.
 
 ## Methodological foundation
 
