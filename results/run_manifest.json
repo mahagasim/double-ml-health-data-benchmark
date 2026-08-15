@@ -28,6 +28,7 @@
   "validation": {
     "automated_tests": 9,
     "test_status_at_freeze": "passing",
-    "doubleml_external_validation": "hook included; package agreement not claimed in primary execution environment"
+    "frozen_result_integrity_check": "CI checks internal agreement among manifest, scenario summaries, combined summary, and status counts; omitted raw artifacts are hash-verified only when present",
+    "doubleml_external_validation": "separate fixed-draw raw-LASSO PLR implementation check against DoubleMLPLR 0.11.4 on Scenarios A and C; recorded in results/doubleml_validation.md; not a rerun of the primary Monte Carlo"
   }
 }

@@ -1,0 +1,12 @@
+# Direct dependency versions observed in the passing Python 3.11 CI environment
+# for the frozen GitHub snapshot. This is a reproducible CI reference, NOT a
+# claim that these were the exact package versions used for the scientific
+# Monte Carlo execution.
+numpy==2.4.6
+pandas==3.0.5
+scipy==1.17.1
+scikit-learn==1.9.0
+statsmodels==0.14.6
+matplotlib==3.11.1
+PyYAML==6.0.3
+pytest==9.1.1
