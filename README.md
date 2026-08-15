@@ -238,9 +238,9 @@ The GitHub snapshot includes:
 - automated figures;
 - reviewer-facing notebooks;
 - CI checks;
-- an optional DoubleML validation hook.
+- a separate fixed-draw `DoubleMLPLR` implementation validation for the manual raw-LASSO PLR estimator.
 
-Current committed test suite at the frozen snapshot: **9 tests**. CI on this revision also checks internal consistency of the committed frozen-result artifacts.
+Current committed test suite at the frozen snapshot: **9 tests**. CI on this revision also checks internal consistency of the committed frozen-result artifacts and independently compares the manual raw-LASSO PLR implementation with DoubleML 0.11.4. On the fixed A/C validation draws, point-estimate differences are below 2.1e-6 and standard-error differences below 4.7e-5; exact values and boundaries are recorded in [`results/doubleml_validation.md`](results/doubleml_validation.md).
 
 > **Repository-size note:** the GitHub portfolio snapshot intentionally omits the multi-megabyte replication-level `*_raw.csv` files and the generated example dataset. The manifest records deterministic seeds and SHA-256 reference hashes for those omitted artifacts. Because the raw files are not committed, this snapshot can verify the internal consistency of the committed summaries and status counts, but it cannot independently hash-verify the omitted raw files unless they are supplied or regenerated.
 
@@ -275,12 +275,14 @@ double-ml-health-data-benchmark/
 │   ├── run_experiment.py
 │   ├── merge_batch_outputs.py
 │   ├── verify_frozen_results.py
+│   ├── validate_doubleml.py
 │   ├── export_example_data.py
 │   └── make_figures.py
 ├── tests/
 ├── notebooks/
 ├── results/
 │   ├── run_manifest.json
+│   ├── doubleml_validation.md
 │   ├── key_results.csv
 │   ├── combined_summary.csv
 │   └── scenario_*_summary.csv
@@ -322,6 +324,12 @@ Check the internal consistency of the committed frozen summaries/status/manifest
 python scripts/verify_frozen_results.py
 ```
 
+Run the independent raw-LASSO PLR implementation check in the validation environment:
+
+```bash
+python scripts/validate_doubleml.py
+```
+
 Generate figures from saved raw outputs when those outputs are available:
 
 ```bash
@@ -348,7 +356,7 @@ The notebooks are intentionally lightweight reviewer aids. Saved execution outpu
 - Fixed nuisance penalties are one finite-sample design choice and were pilot-calibrated on raw features rather than separately optimized for the rich dictionary.
 - The unpenalized parametric propensity benchmark is deliberately stressed in the 400-control settings; its plug-in SE does not constitute a full first-step-adjusted M-estimation sandwich.
 - Sample-size/fold-count and tree-learner sensitivities remain extensions.
-- `DoubleML` package agreement is not part of the frozen scientific run claim. An optional independent validation hook is retained separately.
+- The executed DoubleML comparison is a fixed-draw implementation check for **raw-LASSO PLR only**. It is separate from the frozen scientific run and does not independently reproduce all 800 datasets, validate the rich dictionary, or hash-verify omitted raw files.
 - With 200 replications, Monte Carlo uncertainty is non-negligible; small differences between close-performing methods should not be overinterpreted.
 
 ## Methodological foundation
