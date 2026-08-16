@@ -22,7 +22,7 @@ It shows something more specific:
 
 > **DML works well when the nuisance representation is adequate; orthogonalization does not compensate for a badly misspecified nuisance learner, and better treatment prediction does not repair weak overlap.**
 
-The strongest contrast occurs in the nonlinear Scenario C. The true effect is 1.0:
+The strongest contrast occurs in the nonlinear Scenario C. The true effect is $\theta_0=1$:
 
 | Estimator | Bias | RMSE | 95% coverage |
 |---|---:|---:|---:|
@@ -49,24 +49,28 @@ This repository therefore implements the estimating equation directly rather tha
 
 ## Primary causal model
 
-The DGP satisfies a partially linear model
+The data-generating process satisfies the partially linear regression model
 
-\[
-Y=D\theta_0+g_0(X)+\varepsilon,
-\qquad E[\varepsilon\mid D,X]=0.
-\]
+$$
+Y_i=D_i\theta_0+g_0(X_i)+\varepsilon_i,
+\qquad
+\mathbb E[\varepsilon_i\mid D_i,X_i]=0.
+$$
 
-Treatment is binary, the outcome is continuous, and
+Treatment is binary, the outcome is continuous, and the true treatment coefficient is
 
-\[
+$$
 \theta_0=1.
-\]
+$$
 
-Because treatment effects are constant,
+Because treatment effects are constant by construction,
 
-\[
-ATE=E[Y(1)-Y(0)]=1.
-\]
+$$
+\operatorname{ATE}
+=
+\mathbb E\!\left[Y_i(1)-Y_i(0)\right]
+=1.
+$$
 
 The project also retains a manual binary-treatment IRM/AIPW DML implementation as a secondary extension.
 
@@ -79,34 +83,52 @@ The project also retains a manual binary-treatment IRM/AIPW DML implementation a
 | **C** | 1,000 | 400 | Nonlinear + interactions | Good | Stress nuisance representation |
 | **D** | 1,000 | 400 | Same nonlinear structure as C | Weak | Stress positivity/overlap |
 
-Covariates follow a correlated Gaussian AR(1)-type design with \(\rho=0.30\).
+Covariates follow a correlated Gaussian AR(1)-type design with $\rho=0.30$.
 
-In B-D:
+In scenarios B–D:
 
-- X1-X10 are true confounders;
-- X11-X15 predict treatment only;
-- X16-X20 predict outcome only;
-- X21-X400 are noise.
+- $X_1,\ldots,X_{10}$ are true confounders;
+- $X_{11},\ldots,X_{15}$ predict treatment only;
+- $X_{16},\ldots,X_{20}$ predict outcome only;
+- $X_{21},\ldots,X_{400}$ are noise.
 
 This separation is important because predictive relevance is not identical to confounding relevance.
 
 ## A genuinely high-dimensional nuisance dictionary
 
-The primary flexible DML learner is not a model-zoo addition. It creates a fixed nonlinear basis for **every** covariate:
+The primary flexible DML learner is not a model-zoo addition. It creates a fixed nonlinear basis for **every** raw covariate $X_j$:
 
-- \(X_j\);
-- \(X_j^2-1\);
-- \(\sin(X_j)\);
-- \(I(X_j>0)-1/2\);
-- adjacent interactions \(X_jX_{j+1}-\rho\).
+$$
+\phi_j(X)
+=
+\left(
+X_j,
+X_j^2-1,
+\sin X_j,
+\mathbf 1\{X_j>0\}-\frac12
+\right),
+$$
 
-For \(p=400\), this produces
+plus adjacent interactions
 
-\[
-p^*=5p-1=1999>N=1000.
-\]
+$$
+X_jX_{j+1}-\rho,
+\qquad j=1,\ldots,p-1.
+$$
 
-LASSO therefore has to perform regularized nuisance learning in a true \(p^*>N\) design. The dictionary is deterministic and applied to all covariates; it does not receive an oracle list of active variables.
+Hence the total dictionary dimension is
+
+$$
+p^*=4p+(p-1)=5p-1.
+$$
+
+For $p=400$,
+
+$$
+p^*=5(400)-1=1999>N=1000.
+$$
+
+LASSO therefore performs regularized nuisance learning in a genuinely high-dimensional $p^*>N$ design. The dictionary is deterministic and applied to all covariates; it does not receive an oracle list of active variables.
 
 ## Estimator ladder
 
@@ -124,41 +146,70 @@ Random Forest and XGBoost implementations remain available as optional sensitivi
 
 ## Manual DML implementation
 
-Define
+Let
 
-\[
-\ell_0(X)=E[Y\mid X],
+$$
+\ell_0(X)=\mathbb E[Y\mid X],
 \qquad
-m_0(X)=E[D\mid X].
-\]
+m_0(X)=\mathbb E[D\mid X].
+$$
 
-The partialling-out score is
+For $W=(Y,D,X)$ and nuisance functions $\eta=(\ell,m)$, the partialling-out score is
 
-\[
+$$
 \psi(W;\theta,\eta)
 =
-\{Y-\ell(X)-\theta[D-m(X)]\}\{D-m(X)\}.
-\]
+\bigl\{Y-\ell(X)-\theta[D-m(X)]\bigr\}
+\bigl\{D-m(X)\bigr\}.
+$$
+
+The DML estimator solves the cross-fitted sample moment condition
+
+$$
+\frac{1}{n}
+\sum_{i=1}^{n}
+\psi\!\left(W_i;\widehat\theta,\widehat\eta_{-k(i)}\right)
+=0,
+$$
+
+where $\widehat\eta_{-k(i)}$ denotes nuisance functions estimated without using the fold containing observation $i$.
+
+Equivalently, after forming the out-of-fold residuals
+
+$$
+\widetilde Y_i=Y_i-\widehat\ell_{-k(i)}(X_i),
+\qquad
+\widetilde D_i=D_i-\widehat m_{-k(i)}(X_i),
+$$
+
+the partialling-out estimator can be written as
+
+$$
+\widehat\theta
+=
+\frac{\sum_{i=1}^{n}\widetilde D_i\widetilde Y_i}
+     {\sum_{i=1}^{n}\widetilde D_i^2}.
+$$
 
 The code manually:
 
 1. creates five outer folds;
 2. fits nuisance models on the complement of each fold;
-3. generates held-out \(\hat\ell(X)\) and \(\hat m(X)\);
+3. generates held-out $\widehat\ell(X)$ and $\widehat m(X)$;
 4. residualizes outcome and treatment;
-5. estimates \(\theta\) from the orthogonal score; and
+5. estimates $\theta$ from the orthogonal score; and
 6. computes an influence-function standard error.
 
 No DML package is required for the primary estimator.
 
 ## Frozen L1 penalties
 
-L1 hyperparameters were calibrated **before the scientific run** using separate seeds 9101-9103 and nuisance-prediction metrics only. Treatment-effect error was not used to select them.
+L1 hyperparameters were calibrated **before the scientific run** using separate seeds 9101–9103 and nuisance-prediction metrics only. Treatment-effect error was not used to select them.
 
 Frozen values:
 
-- outcome LASSO \(\alpha=0.05\);
-- L1-logistic treatment nuisance \(C=0.05\).
+- outcome LASSO $\alpha=0.05$;
+- L1-logistic treatment nuisance $C=0.05$.
 
 The full calibration grid is committed in `results/l1_penalty_calibration.csv`.
 
@@ -166,11 +217,33 @@ The full calibration grid is committed in `results/l1_penalty_calibration.csv`.
 
 The primary experiment contains
 
-\[
-4\times200=800
-\]
+$$
+4\times 200=800
+$$
 
 simulated datasets.
+
+For an estimator $\widehat\theta_r$ in Monte Carlo replication $r=1,\ldots,R$, the reported bias is
+
+$$
+\operatorname{Bias}(\widehat\theta)
+=
+\frac{1}{R}
+\sum_{r=1}^{R}
+\left(\widehat\theta_r-\theta_0\right),
+$$
+
+and the root mean squared error is
+
+$$
+\operatorname{RMSE}(\widehat\theta)
+=
+\sqrt{
+\frac{1}{R}
+\sum_{r=1}^{R}
+\left(\widehat\theta_r-\theta_0\right)^2
+}.
+$$
 
 For each estimator the repository records:
 
@@ -196,7 +269,7 @@ OLS is essentially unbiased (bias -0.005), with RMSE 0.067 and 96.5% coverage. D
 
 ### B — sparse many-control setting
 
-OLS remains excellent because the structural outcome model is linear and \(N>p\). Raw DML-LASSO has similar RMSE but more bias and lower coverage.
+OLS remains excellent because the structural outcome model is linear and $N>p$. Raw DML-LASSO has similar RMSE but more bias and lower coverage.
 
 Unpenalized parametric IPW/AIPW become heavy-tailed and fail numerically in 6.5% of replications.
 
@@ -214,7 +287,7 @@ Outcome-nuisance RMSE falls from 1.171 for raw DML-LASSO to 0.458 for rich-dicti
 
 The rich learner's mean propensity AUC rises from 0.646 in C to 0.825 in D, yet causal RMSE worsens from 0.078 to 0.099 and coverage falls from 94.5% to 90.0%.
 
-The share of **true** propensity scores outside [0.05,0.95] rises from roughly 0.6% to 15.9%.
+The share of **true** propensity scores outside $[0.05,0.95]$ rises from roughly 0.6% to 15.9%.
 
 **Lesson:** better treatment classification can indicate worse causal overlap.
 
